@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dictée d'Intervalles - Raccourcis Clavier</title>
+    <style>
+        /* CSS Identique à la version précédente */
+        body { font-family: sans-serif; line-height: 1.6; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { max-width: 850px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        button { padding: 8px 12px; font-size: 0.95em; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 4px; margin: 4px; min-width: 55px; text-align: center; transition: background-color 0.2s ease; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; opacity: 0.7; }
+        button:hover:not(:disabled) { background-color: #0056b3; }
+        .interval-btn { background-color: #6c757d; min-width: 60px; }
+        .interval-btn:hover:not(:disabled) { background-color: #5a6268; }
+        .interval-btn.unison { background-color: #ffc107; color: #333; }
+        .interval-btn.unison:hover:not(:disabled) { background-color: #e0a800; }
+        .control-btn { background-color: #17a2b8; }
+        .control-btn:hover:not(:disabled) { background-color: #138496; }
+        .generate-btn { background-color: #007bff; }
+        .generate-btn:hover:not(:disabled) { background-color: #0056b3; }
+        .stop-btn { background-color: #e74c3c; }
+        .stop-btn:hover:not(:disabled) { background-color: #c0392b; }
+        .clear-btn { background-color: #dc3545; min-width: auto; padding: 5px 10px; font-size: 0.9em; }
+        .clear-btn:hover:not(:disabled) { background-color: #c82333; }
+        .reset-btn { background-color: #ffc107; color: #333; font-size: 0.85em; padding: 4px 8px; }
+        .reset-btn:hover:not(:disabled) { background-color: #e0a800; }
+        #status, #result, #userSequenceDisplay { margin-top: 15px; padding: 10px; border-radius: 4px; min-height: 1.5em; }
+        #status { background-color: #e7f3fe; border: 1px solid #c5dcf2; }
+        #result { background-color: #dff0d8; border: 1px solid #d6e9c6; white-space: pre-wrap; font-family: monospace; }
+        #userSequenceDisplay { background-color: #e9ecef; border: 1px solid #ced4da; font-family: monospace; font-size: 1.1em; margin-bottom: 15px; }
+        #intervalButtonsContainer { margin-top: 15px; }
+        #intervalButtons { padding: 10px; border: 1px solid #eee; border-radius: 4px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; background-color: #f8f9fa; }
+        .correct { color: green; font-weight: bold; }
+        .incorrect { color: red; font-weight: bold; text-decoration: line-through; }
+        .legend { font-size: 0.9em; color: #555; margin-top: 10px; padding: 10px; background-color: #f0f0f0; border-radius: 4px; }
+        .legend code { background-color: #ddd; padding: 2px 4px; border-radius: 3px; font-family: monospace;}
+        .button-group { margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 5px; align-items: center;}
+        .config-section, .stats-section { background-color: #fdfdfe; border: 1px solid #e0e0e0; padding: 10px 15px; margin-bottom: 20px; border-radius: 5px; }
+        .config-item { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+        .config-item label { min-width: 120px; font-weight: bold; }
+        .config-item input[type="range"] { flex-grow: 1; cursor: pointer; }
+        .config-item #noteCountValue { font-weight: bold; min-width: 20px; text-align: right; }
+        .stats-section h4 { margin-bottom: 10px; }
+        .stats-section p { margin: 5px 0; }
+        #globalSuccessRate { font-weight: bold; font-size: 1.1em; }
+        #detailedStatsContainer { margin-top: 15px; max-height: 300px; overflow-y: auto; }
+        #statsTable { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        #statsTable th, #statsTable td { border: 1px solid #ddd; padding: 6px 8px; text-align: center; }
+        #statsTable th { background-color: #f2f2f2; font-weight: bold; }
+        #statsTable td:first-child { text-align: left; font-weight: bold; }
+    </style>
+</head>
+<body>
+     <div class="container">
+         <h1>Dictée d'Intervalles</h1>
+
+         <div class="config-section">
+              <h4>Configuration</h4>
+              <div class="config-item">
+                  <label for="noteCountSlider">Nombre de notes :</label>
+                  <input type="range" id="noteCountSlider" name="noteCount" min="4" max="25" value="10" step="1">
+                  <span id="noteCountValue">10</span>
+                  <span>notes</span>
+              </div>
+         </div>
+
+         <div class="button-group">
+              <button id="playBtn" class="generate-btn">Nouvelle Séquence (G)</button> <button id="replayBtn" class="control-btn" disabled>Rejouer Séquence (H)</button> <button id="stopBtn" class="stop-btn" disabled>Arrêter (J)</button> </div>
+         <div id="status">Ajustez la configuration et cliquez sur "Nouvelle Séquence".</div>
+
+         <h4>Votre Séquence : <span id="userSequenceLengthInfo"></span></h4>
+         <div id="userSequenceDisplay">&nbsp;</div>
+         <div>
+             <button id="clearLastBtn" class="clear-btn" disabled>Effacer Dernier</button>
+             <button id="clearAllBtn" class="clear-btn" disabled>Effacer Tout</button>
+         </div>
+
+         <div id="intervalButtonsContainer">
+              <h4>Choisissez les intervalles (<span id="expectedIntervalsCount">?</span> attendus) :</h4>
+              <div id="intervalButtons">
+                  </div>
+              <div class="legend">
+                   <strong>Notation :</strong> <code>u</code>=Unisson, <code>2m</code>=Sec. mineure, ..., <code>8J</code>=Octave Juste. <code>Tri</code>=Triton (4A/5d).<br>
+                   <code>+</code> = Ascendant, <code>-</code> = Descendant. Raccourcis: (G) Nouvelle, (H) Rejouer, (J) Arrêter. </div>
+         </div>
+
+         <button id="checkBtn" class="control-btn" disabled>Vérifier ma réponse</button>
+
+         <div id="result" style="display: none;"></div>
+
+         <div class="stats-section">
+              <h4>Statistiques (enregistrées localement)</h4>
+              <p>Taux de réussite global : <span id="globalSuccessRate">--</span>%</p>
+              <div id="detailedStatsContainer">
+                  <table id="statsTable">
+                      <thead>
+                          <tr>
+                              <th>Intervalle</th>
+                              <th>Présenté</th>
+                              <th>Correct</th>
+                              <th>Réussite (%)</th>
+                          </tr>
+                      </thead>
+                      <tbody id="detailedStatsTbody">
+                          </tbody>
+                  </table>
+              </div>
+              <button id="resetStatsBtn" class="reset-btn" style="margin-top: 10px;">Réinitialiser les statistiques</button>
+         </div>
+
+     </div>
+
+    <script>
+        // --- Configuration & Constantes ---
+        const START_MIDI_NOTE = 60; const MIN_MIDI_NOTE = 48; const MAX_MIDI_NOTE = 84;
+        const TEMPO_BPM = 90; const SECONDS_PER_BEAT = 60 / TEMPO_BPM;
+        const RHYTHMS = [ { beats: 0.5, name: 'Croche' }, { beats: 1, name: 'Noire' }, { beats: 2, name: 'Blanche' } ];
+        const DEFAULT_RHYTHM_BEATS = 1; const SOUND_TYPE = 'triangle';
+        const GAIN_LEVEL = 0.4; const ATTACK_TIME = 0.02; const DECAY_TIME = 0.05;
+        const STATS_STORAGE_KEY = 'intervalDictationStats_v1';
+
+        // --- Variables Globales ---
+        let audioContext; let generatedNotesMidi = []; let correctIntervals = [];
+        let generatedNoteDurationsBeats = []; let userAnswerArray = [];
+        let isPlaying = false; let sequenceGenerated = false;
+        let statistics = {};
+        let currentPlaybackNodes = [];
+
+        // --- Éléments DOM ---
+        const playBtn = document.getElementById('playBtn'); const replayBtn = document.getElementById('replayBtn');
+        const stopBtn = document.getElementById('stopBtn'); const checkBtn = document.getElementById('checkBtn');
+        const statusDiv = document.getElementById('status'); const resultDiv = document.getElementById('result');
+        const intervalButtonsDiv = document.getElementById('intervalButtons'); const userSequenceDiv = document.getElementById('userSequenceDisplay');
+        const clearLastBtn = document.getElementById('clearLastBtn'); const clearAllBtn = document.getElementById('clearAllBtn');
+        const noteCountSlider = document.getElementById('noteCountSlider'); const noteCountValueSpan = document.getElementById('noteCountValue');
+        const userSequenceLengthInfo = document.getElementById('userSequenceLengthInfo'); const expectedIntervalsCount = document.getElementById('expectedIntervalsCount');
+        const globalSuccessRateSpan = document.getElementById('globalSuccessRate');
+        const detailedStatsContainer = document.getElementById('detailedStatsContainer');
+        const detailedStatsTbody = document.getElementById('detailedStatsTbody');
+        const resetStatsBtn = document.getElementById('resetStatsBtn');
+
+
+        // --- Fonctions de Gestion des Statistiques ---
+        function loadStats() { /* ... */ const storedStats = localStorage.getItem(STATS_STORAGE_KEY); if (storedStats) { try { statistics = JSON.parse(storedStats); if (typeof statistics !== 'object' || statistics === null) { console.warn("Données stats invalides"); statistics = {}; } } catch (error) { console.error("Erreur parsing stats:", error); statistics = {}; } } else { statistics = {}; } console.log("Stats chargées:", statistics); }
+        function saveStats() { /* ... */ try { localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(statistics)); } catch (error) { console.error("Erreur sauvegarde stats:", error); } }
+        function updateStats(correctIntervalsList, userAnswersList) { /* ... */ if (correctIntervalsList.length !== userAnswersList.length) return; correctIntervalsList.forEach((correctInterval, index) => { const userAnswer = userAnswersList[index]; const isCorrect = (userAnswer === correctInterval); if (!statistics[correctInterval]) { statistics[correctInterval] = { presented: 0, correct: 0 }; } statistics[correctInterval].presented += 1; if (isCorrect) { statistics[correctInterval].correct += 1; } }); saveStats(); displayGlobalStats(); displayDetailedStats(); console.log("Stats mises à jour:", statistics); }
+        function displayGlobalStats() { /* ... */ let totalPresented = 0; let totalCorrect = 0; for (const interval in statistics) { if (statistics.hasOwnProperty(interval)) { totalPresented += statistics[interval].presented || 0; totalCorrect += statistics[interval].correct || 0; } } if (totalPresented === 0) { globalSuccessRateSpan.textContent = "--"; } else { const rate = (totalCorrect / totalPresented) * 100; globalSuccessRateSpan.textContent = rate.toFixed(1); } }
+        function displayDetailedStats() { /* ... */ detailedStatsTbody.innerHTML = ''; const sortedIntervals = Object.keys(statistics).sort(compareIntervals); if (sortedIntervals.length === 0) { const row = detailedStatsTbody.insertRow(); const cell = row.insertCell(); cell.colSpan = 4; cell.textContent = "Aucune statistique disponible."; cell.style.textAlign = "center"; cell.style.fontStyle = "italic"; return; } sortedIntervals.forEach(intervalName => { const stats = statistics[intervalName]; const presented = stats.presented || 0; const correct = stats.correct || 0; const rate = (presented > 0) ? (correct / presented) * 100 : 0; const row = detailedStatsTbody.insertRow(); const cellInterval = row.insertCell(); cellInterval.textContent = intervalName; cellInterval.style.textAlign = "left"; cellInterval.style.fontWeight = "bold"; const cellPresented = row.insertCell(); cellPresented.textContent = presented; const cellCorrect = row.insertCell(); cellCorrect.textContent = correct; const cellRate = row.insertCell(); cellRate.textContent = rate.toFixed(1) + '%'; }); }
+        function compareIntervals(a, b) { /* ... */ function getIntervalInfo(intervalName) { if (intervalName === 'u') return { size: 0, quality: 0, direction: 0, name: 'u' }; const direction = intervalName.startsWith('+') ? 1 : (intervalName.startsWith('-') ? -1 : 0); const baseName = intervalName.substring(1); let size = 0; let quality = 0; if (baseName === 'Tri') { size = 4.5; quality = 4; } else { const sizeMatch = baseName.match(/\d+/); if (sizeMatch) size = parseInt(sizeMatch[0]); if (baseName.includes('m')) quality = 1; else if (baseName.includes('M')) quality = 2; else if (baseName.includes('J')) quality = 3; } return { size, quality, direction, name: intervalName }; } const infoA = getIntervalInfo(a); const infoB = getIntervalInfo(b); if (infoA.size !== infoB.size) { return infoA.size - infoB.size; } if (infoA.quality !== infoB.quality) { return infoA.quality - infoB.quality; } if (infoA.direction !== infoB.direction) { return infoB.direction - infoA.direction; } return 0; }
+
+
+        // --- Fonctions Audio ---
+        function initAudioContext() { if (!audioContext) { audioContext = new (window.AudioContext || window.webkitAudioContext)(); } }
+        function midiToFrequency(midiNote) { return 440 * Math.pow(2, (midiNote - 69) / 12); }
+        function playNote(midiNote, startTime, durationSeconds) { if (!audioContext || durationSeconds <= ATTACK_TIME + DECAY_TIME) return null; const oscillator = audioContext.createOscillator(); const gainNode = audioContext.createGain(); oscillator.connect(gainNode); gainNode.connect(audioContext.destination); oscillator.type = SOUND_TYPE; oscillator.frequency.setValueAtTime(midiToFrequency(midiNote), startTime); gainNode.gain.setValueAtTime(0, startTime); gainNode.gain.linearRampToValueAtTime(GAIN_LEVEL, startTime + ATTACK_TIME); gainNode.gain.setValueAtTime(GAIN_LEVEL, startTime + durationSeconds - DECAY_TIME); gainNode.gain.linearRampToValueAtTime(0, startTime + durationSeconds); oscillator.start(startTime); oscillator.stop(startTime + durationSeconds + 0.05); return { oscillator, gainNode }; }
+        async function playSequence(notes, durationsBeats, isReplay = false) { if (isPlaying || notes.length === 0 || notes.length !== durationsBeats.length) { console.error("Problème lecture séquence"); return; } initAudioContext(); isPlaying = true; currentPlaybackNodes = []; let scheduledNodes = []; if (!isReplay) { userAnswerArray = []; userSequenceDiv.innerHTML = '&nbsp;'; } updateButtonStates(); statusDiv.textContent = "Lecture de la séquence..."; let currentTime = audioContext.currentTime + 0.2; let totalDurationSeconds = 0; for (let i = 0; i < notes.length; i++) { const note = notes[i]; const beats = durationsBeats[i] || DEFAULT_RHYTHM_BEATS; const durationSeconds = beats * SECONDS_PER_BEAT; const createdNodes = playNote(note, currentTime, durationSeconds); if (createdNodes) { scheduledNodes.push(createdNodes); } currentTime += durationSeconds; totalDurationSeconds += durationSeconds; } currentPlaybackNodes = scheduledNodes; const totalPlaybackTimeMs = (totalDurationSeconds + 0.3) * 1000; setTimeout(() => { if (isPlaying) { isPlaying = false; sequenceGenerated = true; currentPlaybackNodes = []; updateButtonStates(); statusDiv.textContent = "Séquence jouée. Sélectionnez les intervalles."; } }, totalPlaybackTimeMs); }
+        function stopPlayback() { if (!isPlaying || !audioContext) return; console.log("Arrêt de la lecture..."); const stopTime = audioContext.currentTime; currentPlaybackNodes.forEach(nodes => { nodes.gainNode.gain.cancelScheduledValues(stopTime); nodes.gainNode.gain.linearRampToValueAtTime(0, stopTime + DECAY_TIME * 2); nodes.oscillator.stop(stopTime + DECAY_TIME * 2 + 0.05); }); currentPlaybackNodes = []; isPlaying = false; sequenceGenerated = true; statusDiv.textContent = "Lecture arrêtée."; updateButtonStates(); }
+
+
+        // --- Logique de Génération ---
+        const intervalsDef = [ { name: 'u', semitones: 0 }, { name: '2m', semitones: 1 }, { name: '2M', semitones: 2 }, { name: '3m', semitones: 3 }, { name: '3M', semitones: 4 }, { name: '4J', semitones: 5 }, { name: 'Tri', semitones: 6 }, { name: '5J', semitones: 7 }, { name: '6m', semitones: 8 }, { name: '6M', semitones: 9 }, { name: '7m', semitones: 10 }, { name: '7M', semitones: 11 }, { name: '8J', semitones: 12 } ];
+        const intervalOrder = ['2m', '2M', '3m', '3M', '4J', 'Tri', '5J', '6m', '6M', '7m', '7M', '8J'];
+        function getIntervalName(semitones) { const absSemitones = Math.abs(semitones); const found = intervalsDef.find(interval => interval.semitones === absSemitones); if (!found) return '?'; if (found.name === 'u') return 'u'; return (semitones < 0 ? '-' : '+') + found.name; }
+        function getRandomRhythm() { const rand = Math.random(); if (rand < 0.35) { return RHYTHMS.find(r => r.beats === 0.5); } else if (rand < 0.85) { return RHYTHMS.find(r => r.beats === 1); } else { return RHYTHMS.find(r => r.beats === 2); } }
+        function generateMelodyAndIntervals(noteCountToGenerate) { generatedNotesMidi = [START_MIDI_NOTE]; correctIntervals = []; generatedNoteDurationsBeats = []; let currentNote = START_MIDI_NOTE; const possibleIntervalsForGeneration = intervalsDef.filter(int => int.name !== 'u'); const firstRhythm = getRandomRhythm(); generatedNoteDurationsBeats.push(firstRhythm.beats); for (let i = 0; i < noteCountToGenerate - 1; i++) { let nextNote; let intervalSemitones; let intervalName; let attempts = 0; do { const direction = Math.random() < 0.5 ? -1 : 1; const randomInterval = possibleIntervalsForGeneration[Math.floor(Math.random() * possibleIntervalsForGeneration.length)]; intervalSemitones = direction * randomInterval.semitones; nextNote = currentNote + intervalSemitones; attempts++; } while ((nextNote < MIN_MIDI_NOTE || nextNote > MAX_MIDI_NOTE) && attempts < 10); if (nextNote < MIN_MIDI_NOTE || nextNote > MAX_MIDI_NOTE) { nextNote = currentNote; intervalSemitones = 0; } intervalName = getIntervalName(intervalSemitones); correctIntervals.push(intervalName); generatedNotesMidi.push(nextNote); currentNote = nextNote; const rhythm = getRandomRhythm(); generatedNoteDurationsBeats.push(rhythm.beats); } console.log(`Généré ${generatedNotesMidi.length} notes et ${correctIntervals.length} intervalles.`); console.log("Notes MIDI:", generatedNotesMidi); console.log("Intervalles corrects:", correctIntervals); console.log("Durées (temps):", generatedNoteDurationsBeats); expectedIntervalsCount.textContent = correctIntervals.length; }
+
+
+        // --- Gestion Interaction Utilisateur ---
+        function updateUserSequenceDisplay() { userSequenceLengthInfo.textContent = `(${userAnswerArray.length}/${correctIntervals.length || '?'})`; if (userAnswerArray.length === 0) { userSequenceDiv.innerHTML = '&nbsp;'; } else { userSequenceDiv.textContent = userAnswerArray.join(' , '); } updateButtonStates(); }
+        function createIntervalButtons() { intervalButtonsDiv.innerHTML = ''; const unisonBtn = document.createElement('button'); unisonBtn.textContent = 'u'; unisonBtn.classList.add('interval-btn', 'unison'); unisonBtn.dataset.interval = 'u'; unisonBtn.addEventListener('click', handleIntervalClick); intervalButtonsDiv.appendChild(unisonBtn); intervalOrder.forEach(baseName => { const ascBtn = document.createElement('button'); const ascFullName = '+' + baseName; ascBtn.textContent = ascFullName; ascBtn.classList.add('interval-btn'); ascBtn.dataset.interval = ascFullName; ascBtn.addEventListener('click', handleIntervalClick); intervalButtonsDiv.appendChild(ascBtn); const descBtn = document.createElement('button'); const descFullName = '-' + baseName; descBtn.textContent = descFullName; descBtn.classList.add('interval-btn'); descBtn.dataset.interval = descFullName; descBtn.addEventListener('click', handleIntervalClick); intervalButtonsDiv.appendChild(descBtn); }); }
+        function handleIntervalClick(event) { if (userAnswerArray.length < correctIntervals.length && sequenceGenerated && !isPlaying) { const selectedInterval = event.target.dataset.interval; userAnswerArray.push(selectedInterval); updateUserSequenceDisplay(); } }
+        function updateButtonStates() { const answerIsFull = userAnswerArray.length === correctIntervals.length; const answerIsEmpty = userAnswerArray.length === 0; const canInteractWithSequence = sequenceGenerated && !isPlaying; playBtn.disabled = isPlaying; replayBtn.disabled = !canInteractWithSequence || correctIntervals.length === 0; stopBtn.disabled = !isPlaying; const intervalBtns = intervalButtonsDiv.querySelectorAll('.interval-btn'); intervalBtns.forEach(btn => btn.disabled = !canInteractWithSequence || answerIsFull || correctIntervals.length === 0); clearLastBtn.disabled = !canInteractWithSequence || answerIsEmpty; clearAllBtn.disabled = !canInteractWithSequence || answerIsEmpty; checkBtn.disabled = !canInteractWithSequence || !answerIsFull || correctIntervals.length === 0; }
+
+
+        // --- Écouteurs d'événements ---
+        noteCountSlider.addEventListener('input', () => { noteCountValueSpan.textContent = noteCountSlider.value; });
+        playBtn.addEventListener('click', () => { initAudioContext(); resultDiv.style.display = 'none'; sequenceGenerated = false; const selectedNoteCount = parseInt(noteCountSlider.value); generateMelodyAndIntervals(selectedNoteCount); playSequence(generatedNotesMidi, generatedNoteDurationsBeats, false); updateUserSequenceDisplay(); });
+        replayBtn.addEventListener('click', () => { if (sequenceGenerated && generatedNotesMidi.length > 0) { playSequence(generatedNotesMidi, generatedNoteDurationsBeats, true); } });
+        stopBtn.addEventListener('click', () => { stopPlayback(); });
+        checkBtn.addEventListener('click', () => { if (!sequenceGenerated || userAnswerArray.length !== correctIntervals.length) return; let resultHTML = '<h4>Résultats :</h4>'; let correctCount = 0; resultHTML += `Attendu:       ${correctIntervals.join(' \t ')}\n`; resultHTML += `Votre réponse: `; for (let i = 0; i < correctIntervals.length; i++) { const correct = correctIntervals[i]; const userAns = userAnswerArray[i]; if (userAns === correct) { resultHTML += `<span class="correct">${correct}</span>\t `; correctCount++; } else { resultHTML += `<span class="incorrect">${userAns || 'ø'}</span>(<span class="correct">${correct}</span>)\t `; } } resultHTML += `\n\nScore: ${correctCount} / ${correctIntervals.length}`; resultDiv.innerHTML = resultHTML; resultDiv.style.backgroundColor = '#dff0d8'; resultDiv.style.borderColor = '#d6e9c6'; resultDiv.style.display = 'block'; updateStats(correctIntervals, userAnswerArray); sequenceGenerated = false; isPlaying = false; currentPlaybackNodes = []; updateButtonStates(); playBtn.disabled = false; });
+        clearLastBtn.addEventListener('click', () => { if (userAnswerArray.length > 0 && sequenceGenerated && !isPlaying) { userAnswerArray.pop(); updateUserSequenceDisplay(); } });
+        clearAllBtn.addEventListener('click', () => { if (sequenceGenerated && !isPlaying) { userAnswerArray = []; updateUserSequenceDisplay(); } });
+        resetStatsBtn.addEventListener('click', () => { if (confirm('Êtes-vous sûr de vouloir effacer définitivement toutes les statistiques enregistrées ?')) { localStorage.removeItem(STATS_STORAGE_KEY); statistics = {}; saveStats(); displayGlobalStats(); displayDetailedStats(); console.log("Statistiques réinitialisées."); alert("Statistiques réinitialisées !"); } });
+
+        // --- NOUVEAU: Gestion des raccourcis clavier ---
+        function handleKeyPress(event) {
+            // Ignorer si on tape dans un champ de saisie (au cas où)
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+                return;
+            }
+            // Ignorer si une touche modificatrice est pressée (Ctrl, Alt, Meta) pour éviter conflits
+            if (event.ctrlKey || event.altKey || event.metaKey) {
+                return;
+            }
+
+            // Vérifier quelle touche a été pressée (insensible à la casse)
+            switch (event.key.toLowerCase()) {
+                case 'g': // Nouvelle Séquence
+                    if (!playBtn.disabled) {
+                        console.log("Raccourci 'g': Nouvelle Séquence");
+                        playBtn.click();
+                        event.preventDefault(); // Empêcher action par défaut si nécessaire
+                    }
+                    break;
+                case 'h': // Rejouer Séquence
+                    if (!replayBtn.disabled) {
+                        console.log("Raccourci 'h': Rejouer Séquence");
+                        replayBtn.click();
+                        event.preventDefault();
+                    }
+                    break;
+                case 'j': // Arrêter
+                    if (!stopBtn.disabled) {
+                        console.log("Raccourci 'j': Arrêter");
+                        stopBtn.click();
+                        event.preventDefault();
+                    }
+                    break;
+            }
+        }
+
+        // Ajouter l'écouteur global pour les touches
+        window.addEventListener('keydown', handleKeyPress);
+
+
+        // --- Initialisation ---
+        noteCountValueSpan.textContent = noteCountSlider.value;
+        expectedIntervalsCount.textContent = "?"; userSequenceLengthInfo.textContent = "";
+        createIntervalButtons();
+        updateUserSequenceDisplay();
+        loadStats();
+        displayGlobalStats();
+        displayDetailedStats();
+
+    </script>
+</body>
+</html>
+```
+
+**Modifications clés pour les raccourcis :**
+
+1.  **HTML :** J'ai ajouté `(G)`, `(H)`, `(J)` au texte des boutons correspondants et dans la légende pour indiquer les raccourcis aux utilisateurs.
+2.  **JavaScript :**
+    * Ajout de la fonction `handleKeyPress(event)`.
+    * Cette fonction vérifie d'abord si l'utilisateur est en train de taper dans un champ de saisie ou si une touche modificatrice (Ctrl, Alt, Cmd) est active, et ne fait rien dans ces cas pour éviter les conflits.
+    * Elle utilise un `switch` sur `event.key.toLowerCase()` pour détecter les touches 'g', 'h', ou 'j'.
+    * Pour chaque touche détectée, elle vérifie si le bouton correspondant (`playBtn`, `replayBtn`, `stopBtn`) n'est *pas* désactivé (`!button.disabled`).
+    * Si le bouton est actif, elle simule un clic dessus avec `button.click()` et affiche un message dans la console. J'ai aussi ajouté `event.preventDefault()` pour être sûr de ne pas déclencher d'action navigateur par défaut associée à ces touches (même si c'est peu probable pour g/h/j).
+    * Ajout de l'écouteur d'événement global `window.addEventListener('keydown', handleKeyPress);` à la fin du script pour activer la détection des touches.
+
+Maintenant, vous pouvez utiliser les touches 'g', 'h', et 'j' pour contrôler les actions principales, à condition que les boutons correspondants soient actifs dans l'interfa
